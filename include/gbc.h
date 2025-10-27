@@ -5,7 +5,6 @@
 
 /*
  * gb_chdr_t - Gameboy Cartridge Header
- * 80 bytes
  */
 typedef struct
 {
@@ -25,19 +24,25 @@ typedef struct
 } __attribute__((packed)) gb_chdr_t;
 
 /*
+ * gb_cmmap_t - Gameboy Cartridge memory map
+ */
+typedef union
+{
+    uint8_t data[0x8000];
+    struct
+    {
+        uint8_t brom[0x100]; // 0x0000 - 0x00FF
+        gb_chdr_t chdr;
+        uint8_t rom[0x7eb0]; // 0x0100 - 0x7fff
+    } __attribute__((packed));
+} gb_cmmap_t;
+
+/*
  * get the licensee name
  * chdr: Gameboy Cartridge Header
  * return:
  *      Name of the licensee
  */
 const char *gbc_lic(gb_chdr_t *chdr);
-
-/*
- * get the cartridge type name
- * chdr: Gameboy Cartridge Header
- * return:
- *      Name of the cartridge type or NULL if not found
- */
-// const char *gbc_type_name(gb_chdr_t *chdr);
 
 #endif

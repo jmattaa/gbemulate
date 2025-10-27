@@ -41,11 +41,11 @@ int main(int argc, char **argv)
         return 1;
     }
     log_info("ROM size: %d bytes\n", rom_size);
-    gb_chdr_t *chdr = (gb_chdr_t *)(rom + 0x100);
-    log_info("ROM title: %.16s\n", chdr->title);
-    log_info("ROM size: %d\n", chdr->rom_size);
-    log_info("RAM size: %d\n", chdr->ram_size);
-    log_info("Licensee: %s\n", gbc_lic(chdr));
+    gb_cmmap_t *cmmap = (gb_cmmap_t *)rom;
+    log_info("ROM title: %.16s\n", cmmap->chdr.title);
+    log_info("ROM size: %d\n", cmmap->chdr.rom_size);
+    log_info("RAM size: %d\n", cmmap->chdr.ram_size);
+    log_info("Licensee: %s\n", gbc_lic(&cmmap->chdr));
 
     int running = 1;
     while (running)
