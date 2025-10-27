@@ -33,7 +33,7 @@ typedef union
     {
         uint8_t brom[0x100]; // 0x0000 - 0x00FF
         gb_chdr_t chdr;
-        uint8_t rom[0x7eb0]; // 0x0100 - 0x7fff
+        uint8_t rom[0x7eb0]; // 0x0150 - 0x7fff
     } __attribute__((packed));
 } gb_cmmap_t;
 
