@@ -1,5 +1,5 @@
 #include "constants.h"
-#include "gb.h"
+#include "gbc.h"
 #include "io.h"
 #include "logger.h"
 #include <SDL3/SDL.h>
@@ -45,6 +45,7 @@ int main(int argc, char **argv)
     log_info("ROM title: %.16s\n", chdr->title);
     log_info("ROM size: %d\n", chdr->rom_size);
     log_info("RAM size: %d\n", chdr->ram_size);
+    log_info("Licensee: %s\n", gbc_lic(chdr));
 
     int running = 1;
     while (running)

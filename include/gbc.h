@@ -1,5 +1,5 @@
-#ifndef GBEMULATE_GB_H
-#define GBEMULATE_GB_H
+#ifndef GBEMULATE_GBC_H
+#define GBEMULATE_GBC_H
 
 #include <stdint.h>
 
@@ -23,5 +23,21 @@ typedef struct
     uint8_t hdr_chksum;       // 0x014D
     uint8_t global_chksum[2]; // 0x014E-0x014F
 } __attribute__((packed)) gb_chdr_t;
+
+/*
+ * get the licensee name
+ * chdr: Gameboy Cartridge Header
+ * return:
+ *      Name of the licensee
+ */
+const char *gbc_lic(gb_chdr_t *chdr);
+
+/*
+ * get the cartridge type name
+ * chdr: Gameboy Cartridge Header
+ * return:
+ *      Name of the cartridge type or NULL if not found
+ */
+// const char *gbc_type_name(gb_chdr_t *chdr);
 
 #endif
