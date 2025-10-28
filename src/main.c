@@ -49,8 +49,6 @@ int main(int argc, char **argv)
     log_info("Licensee: %s\n", gbc_lic(&gb_mmap.cmmap.chdr));
 
     gbcpu_init();
-    gbcpu_step();
-    gbcpu_step();
 
     int running = 1;
     while (running)

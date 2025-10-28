@@ -5,12 +5,22 @@
 
 typedef struct
 {
+    uint8_t _unused : 4; // bits 0-3, always 0
+    uint8_t c : 1;       // bit 4
+    uint8_t h : 1;       // bit 5
+    uint8_t n : 1;       // bit 6
+    uint8_t z : 1;       // bit 7
+} __attribute__((packed)) gbcpu_flags_t;
+
+typedef struct
+{
     // registers
+    // should they be lioke this or should it be a then f, b then c ...
     union
-   {
+    {
         struct
         {
-            uint8_t f;
+            gbcpu_flags_t f;
             uint8_t a;
         };
         uint16_t af;
