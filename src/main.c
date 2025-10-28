@@ -1,5 +1,7 @@
 #include "constants.h"
 #include "gbc.h"
+#include "gbcpu.h"
+#include "gbmmap.h"
 #include "io.h"
 #include "logger.h"
 #include <SDL3/SDL.h>
@@ -40,12 +42,15 @@ int main(int argc, char **argv)
         SDL_Quit();
         return 1;
     }
-    log_info("ROM size: %d bytes\n", rom_size);
-    gb_cmmap_t *cmmap = (gb_cmmap_t *)rom;
-    log_info("ROM title: %.16s\n", cmmap->chdr.title);
-    log_info("ROM size: %d\n", cmmap->chdr.rom_size);
-    log_info("RAM size: %d\n", cmmap->chdr.ram_size);
-    log_info("Licensee: %s\n", gbc_lic(&cmmap->chdr));
+    gb_mmap.cmmap = *(gb_cmmap_t *)rom;
+    log_info("ROM title: %.16s\n", gb_mmap.cmmap.chdr.title);
+    log_info("ROM size: %d\n", gb_mmap.cmmap.chdr.rom_size);
+    log_info("RAM size: %d\n", gb_mmap.cmmap.chdr.ram_size);
+    log_info("Licensee: %s\n", gbc_lic(&gb_mmap.cmmap.chdr));
+
+    gbcpu_init();
+    gbcpu_step();
+    gbcpu_step();
 
     int running = 1;
     while (running)
