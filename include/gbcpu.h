@@ -54,7 +54,9 @@ typedef struct
     };
     uint16_t sp;
     uint16_t pc;
+
     // some good shi we need
+    uint8_t ime;
 } __attribute__((packed)) gbcpu_t;
 
 extern gbcpu_t gbcpu;

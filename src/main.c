@@ -66,6 +66,8 @@ int main(int argc, char **argv)
 
         SDL_RenderClear(ren);
         SDL_RenderPresent(ren);
+
+        gbcpu_step();
         SDL_Delay(10);
     }
 
