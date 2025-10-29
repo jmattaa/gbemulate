@@ -1,87 +1,226 @@
 #include "gbcpu.h"
 #include "gbmmap.h"
-#include "logger.h"
 #include <stdint.h>
 
 gbcpu_t gbcpu;
 
-#define DEC_r8(reg)                                                            \
-    reg--;                                                                     \
-    gbcpu.f.z = reg == 0;                                                      \
-    gbcpu.f.n = 1;                                                             \
-    gbcpu.f.h = (reg >> 3) & 1
-
 #define INC_r8(reg)                                                            \
-    reg++;                                                                     \
-    gbcpu.f.z = reg == 0;                                                      \
-    gbcpu.f.n = 0;                                                             \
-    gbcpu.f.h = (reg >> 3) & 1
-
-#define ADD_RR_RR(r1, r2)                                                      \
-    r1 += r2;                                                                  \
-    gbcpu.f.z = r1 == 0;                                                       \
-    gbcpu.f.n = 0;                                                             \
-    gbcpu.f.h = (r1 >> 11) & 1;                                                \
-    gbcpu.f.c = (r1 >> 15) & 1
-
-#define ADD_R8(r) ADD_RR_RR(gbcpu.a, r)
-
-#define ADC_R8(r)                                                              \
-    gbcpu.a += r + gbcpu.f.c;                                                  \
-    gbcpu.f.z = gbcpu.a == 0;                                                  \
-    gbcpu.f.n = 0;                                                             \
-    gbcpu.f.h = (gbcpu.a >> 3) & 1;                                            \
-    gbcpu.f.c = (gbcpu.a >> 7) & 1
-
-#define SUB_R8(r)                                                              \
-    gbcpu.a -= r;                                                              \
-    gbcpu.f.z = gbcpu.a == 0;                                                  \
-    gbcpu.f.n = 1;                                                             \
-    gbcpu.f.h = (gbcpu.a >> 3) & 1;                                            \
-    gbcpu.f.c = (gbcpu.a >> 7) & 1
-
-#define SBC_R8(r)                                                              \
-    gbcpu.a -= r - gbcpu.f.c;                                                  \
-    gbcpu.f.z = gbcpu.a == 0;                                                  \
-    gbcpu.f.n = 1;                                                             \
-    gbcpu.f.h = (gbcpu.a >> 3) & 1;                                            \
-    gbcpu.f.c = (gbcpu.a >> 7) & 1
-
-#define AND_R8(r)                                                              \
-    gbcpu.a &= r;                                                              \
-    gbcpu.f.z = gbcpu.a == 0;                                                  \
-    gbcpu.f.n = 0;                                                             \
-    gbcpu.f.h = 1;                                                             \
-    gbcpu.f.c = 0
-
-#define XOR_R8(r)                                                              \
-    gbcpu.a ^= r;                                                              \
-    gbcpu.f.z = gbcpu.a == 0;                                                  \
-    gbcpu.f.n = 0;                                                             \
-    gbcpu.f.h = 0;                                                             \
-    gbcpu.f.c = 0
-
-#define OR_R8(r)                                                               \
-    gbcpu.a |= r;                                                              \
-    gbcpu.f.z = gbcpu.a == 0;                                                  \
-    gbcpu.f.n = 0;                                                             \
-    gbcpu.f.h = 0;                                                             \
-    gbcpu.f.c = 0
-
-#define CP_R8(r)                                                               \
+    do                                                                         \
     {                                                                          \
-        uint8_t res = gbcpu.a - r;                                             \
+        uint8_t res = (reg) + 1;                                               \
+        gbcpu.f.z = res == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = ((reg & 0xF) + 1) > 0xF;                                   \
+        (reg) = res;                                                           \
+    } while (0)
+
+#define DEC_r8(reg)                                                            \
+    do                                                                         \
+    {                                                                          \
+        uint8_t res = (reg) - 1;                                               \
         gbcpu.f.z = res == 0;                                                  \
         gbcpu.f.n = 1;                                                         \
-        gbcpu.f.h = (res >> 3) & 1;                                            \
-        gbcpu.f.c = (res >> 7) & 1;                                            \
-    }
+        gbcpu.f.h = (reg & 0xF) == 0;                                          \
+        (reg) = res;                                                           \
+    } while (0)
+
+#define ADD_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        uint16_t res = gbcpu.a + (r);                                          \
+        gbcpu.f.z = ((uint8_t)res) == 0;                                       \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = ((gbcpu.a & 0xF) + ((r) & 0xF)) > 0xF;                     \
+        gbcpu.f.c = res > 0xFF;                                                \
+        gbcpu.a = (uint8_t)res;                                                \
+    } while (0)
+
+#define ADC_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        uint16_t res = gbcpu.a + (r) + gbcpu.f.c;                              \
+        gbcpu.f.z = ((uint8_t)res) == 0;                                       \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = ((gbcpu.a & 0xF) + ((r) & 0xF) + gbcpu.f.c) > 0xF;         \
+        gbcpu.f.c = res > 0xFF;                                                \
+        gbcpu.a = (uint8_t)res;                                                \
+    } while (0)
+
+#define SUB_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        uint16_t res = gbcpu.a - (r);                                          \
+        gbcpu.f.z = ((uint8_t)res) == 0;                                       \
+        gbcpu.f.n = 1;                                                         \
+        gbcpu.f.h = (gbcpu.a & 0xF) < ((r) & 0xF);                             \
+        gbcpu.f.c = gbcpu.a < (r);                                             \
+        gbcpu.a = (uint8_t)res;                                                \
+    } while (0)
+
+#define SBC_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        uint16_t res = gbcpu.a - (r) - gbcpu.f.c;                              \
+        gbcpu.f.z = ((uint8_t)res) == 0;                                       \
+        gbcpu.f.n = 1;                                                         \
+        gbcpu.f.h = (gbcpu.a & 0xF) < (((r) & 0xF) + gbcpu.f.c);               \
+        gbcpu.f.c = gbcpu.a < ((r) + gbcpu.f.c);                               \
+        gbcpu.a = (uint8_t)res;                                                \
+    } while (0)
+
+#define CP_R8(r)                                                               \
+    do                                                                         \
+    {                                                                          \
+        uint16_t res = gbcpu.a - (r);                                          \
+        gbcpu.f.z = ((uint8_t)res) == 0;                                       \
+        gbcpu.f.n = 1;                                                         \
+        gbcpu.f.h = (gbcpu.a & 0xF) < ((r) & 0xF);                             \
+        gbcpu.f.c = gbcpu.a < (r);                                             \
+    } while (0)
+
+#define ADD_RR_RR(r1, r2)                                                      \
+    do                                                                         \
+    {                                                                          \
+        uint32_t res = (r1) + (r2);                                            \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = (((r1) & 0x0FFF) + ((r2) & 0x0FFF)) > 0x0FFF;              \
+        gbcpu.f.c = res > 0xFFFF;                                              \
+        (r1) = (uint16_t)res;                                                  \
+    } while (0)
+
+#define AND_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.a &= (r);                                                        \
+        gbcpu.f.z = gbcpu.a == 0;                                              \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 1;                                                         \
+        gbcpu.f.c = 0;                                                         \
+    } while (0)
+
+#define OR_R8(r)                                                               \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.a |= (r);                                                        \
+        gbcpu.f.z = gbcpu.a == 0;                                              \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+        gbcpu.f.c = 0;                                                         \
+    } while (0)
+
+#define XOR_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.a ^= (r);                                                        \
+        gbcpu.f.z = gbcpu.a == 0;                                              \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+        gbcpu.f.c = 0;                                                         \
+    } while (0)
 
 #define PUSH_RR(r)                                                             \
-    gbcpu.sp--;                                                                \
-    gb_mmap.mem[gbcpu.sp] = (r >> 8) & 0xff;                                   \
-    gbcpu.sp--;                                                                \
-    gb_mmap.mem[gbcpu.sp] = r & 0xff
+    do                                                                         \
+    {                                                                          \
+        gbcpu.sp--;                                                            \
+        gb_mmap.mem[gbcpu.sp] = ((r) >> 8) & 0xFF;                             \
+        gbcpu.sp--;                                                            \
+        gb_mmap.mem[gbcpu.sp] = (r) & 0xFF;                                    \
+    } while (0)
+
+#define RLC_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        uint8_t c = ((r) >> 7) & 1;                                            \
+        (r) = ((r) << 1) | c;                                                  \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+        gbcpu.f.c = c;                                                         \
+    } while (0)
+
+#define RRC_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        uint8_t c = (r) & 1;                                                   \
+        (r) = ((r) >> 1) | (c << 7);                                           \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+        gbcpu.f.c = c;                                                         \
+    } while (0)
+
+#define RL_R8(r)                                                               \
+    do                                                                         \
+    {                                                                          \
+        uint8_t c = gbcpu.f.c;                                                 \
+        gbcpu.f.c = ((r) >> 7) & 1;                                            \
+        (r) = ((r) << 1) | c;                                                  \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+    } while (0)
+
+#define RR_R8(r)                                                               \
+    do                                                                         \
+    {                                                                          \
+        uint8_t c = gbcpu.f.c;                                                 \
+        gbcpu.f.c = (r) & 1;                                                   \
+        (r) = ((r) >> 1) | (c << 7);                                           \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+    } while (0)
+
+#define SLA_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.f.c = ((r) >> 7) & 1;                                            \
+        (r) <<= 1;                                                             \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+    } while (0)
+
+#define SRA_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.f.c = (r) & 1;                                                   \
+        (r) = ((r) >> 1) | (r & 0x80);                                         \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+    } while (0)
+
+#define SRL_R8(r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.f.c = (r) & 1;                                                   \
+        (r) >>= 1;                                                             \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+    } while (0)
+
+#define SWAP_R8(r)                                                             \
+    do                                                                         \
+    {                                                                          \
+        (r) = ((r) << 4) | ((r) >> 4);                                         \
+        gbcpu.f.z = (r) == 0;                                                  \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 0;                                                         \
+        gbcpu.f.c = 0;                                                         \
+    } while (0)
+
+#define BIT(b, r)                                                              \
+    do                                                                         \
+    {                                                                          \
+        gbcpu.f.z = !(((r) >> (b)) & 1);                                       \
+        gbcpu.f.n = 0;                                                         \
+        gbcpu.f.h = 1;                                                         \
+    } while (0)
+
+#define RES(b, r) ((r) &= ~(1 << (b)))
+#define SET(b, r) ((r) |= (1 << (b)))
 
 void gbcpu_init(void) { gbcpu.pc = 0x0100; }
 
@@ -1256,7 +1395,1049 @@ void gbcpu_step(void)
         break;
 
     case 0xcb:
-        // CB prefix shi 😭
+        op = gb_mmap.mem[gbcpu.pc++];
+        switch (op)
+        {
+        case 0x00:
+            // RLC B
+            RLC_R8(gbcpu.b);
+            break;
+        case 0x01:
+            // RLC C
+            RLC_R8(gbcpu.c);
+            break;
+        case 0x02:
+            // RLC D
+            RLC_R8(gbcpu.d);
+            break;
+        case 0x03:
+            // RLC E
+            RLC_R8(gbcpu.e);
+            break;
+        case 0x04:
+            // RLC H
+            RLC_R8(gbcpu.h);
+            break;
+        case 0x05:
+            // RLC L
+            RLC_R8(gbcpu.l);
+            break;
+        case 0x06:
+            // RLC [HL]
+            RLC_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x07:
+            // RLC A
+            RLC_R8(gbcpu.a);
+            break;
+        case 0x08:
+            // RRC B
+            RRC_R8(gbcpu.b);
+            break;
+        case 0x09:
+            // RRC C
+            RRC_R8(gbcpu.c);
+            break;
+        case 0x0a:
+            // RRC D
+            RRC_R8(gbcpu.d);
+            break;
+        case 0x0b:
+            // RRC E
+            RRC_R8(gbcpu.e);
+            break;
+        case 0x0c:
+            // RRC H
+            RRC_R8(gbcpu.h);
+            break;
+        case 0x0d:
+            // RRC L
+            RRC_R8(gbcpu.l);
+            break;
+        case 0x0e:
+            // RRC [HL]
+            RRC_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x0f:
+            // RRC A
+            RRC_R8(gbcpu.a);
+            break;
+
+        case 0x10:
+            // RL B
+            RL_R8(gbcpu.b);
+            break;
+        case 0x11:
+            // RL C
+            RL_R8(gbcpu.c);
+            break;
+        case 0x12:
+            // RL D
+            RL_R8(gbcpu.d);
+            break;
+        case 0x13:
+            // RL E
+            RL_R8(gbcpu.e);
+            break;
+        case 0x14:
+            // RL H
+            RL_R8(gbcpu.h);
+            break;
+        case 0x15:
+            // RL L
+            RL_R8(gbcpu.l);
+            break;
+        case 0x16:
+            // RL [HL]
+            RL_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x17:
+            // RL A
+            RL_R8(gbcpu.a);
+            break;
+        case 0x18:
+            // RR B
+            RR_R8(gbcpu.b);
+            break;
+        case 0x19:
+            // RR C
+            RR_R8(gbcpu.c);
+            break;
+        case 0x1a:
+            // RR D
+            RR_R8(gbcpu.d);
+            break;
+        case 0x1b:
+            // RR E
+            RR_R8(gbcpu.e);
+            break;
+        case 0x1c:
+            // RR H
+            RR_R8(gbcpu.h);
+            break;
+        case 0x1d:
+            // RR L
+            RR_R8(gbcpu.l);
+            break;
+        case 0x1e:
+            // RR [HL]
+            RR_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x1f:
+            // RR A
+            RR_R8(gbcpu.a);
+            break;
+
+        case 0x20:
+            // SLA B
+            SLA_R8(gbcpu.b);
+            break;
+        case 0x21:
+            // SLA C
+            SLA_R8(gbcpu.c);
+            break;
+        case 0x22:
+            // SLA D
+            SLA_R8(gbcpu.d);
+            break;
+        case 0x23:
+            // SLA E
+            SLA_R8(gbcpu.e);
+            break;
+        case 0x24:
+            // SLA H
+            SLA_R8(gbcpu.h);
+            break;
+        case 0x25:
+            // SLA L
+            SLA_R8(gbcpu.l);
+            break;
+        case 0x26:
+            // SLA [HL]
+            SLA_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x27:
+            // SLA A
+            SLA_R8(gbcpu.a);
+            break;
+        case 0x28:
+            // SRA B
+            SRA_R8(gbcpu.b);
+            break;
+        case 0x29:
+            // SRA C
+            SRA_R8(gbcpu.c);
+            break;
+        case 0x2a:
+            // SRA D
+            SRA_R8(gbcpu.d);
+            break;
+        case 0x2b:
+            // SRA E
+            SRA_R8(gbcpu.e);
+            break;
+        case 0x2c:
+            // SRA H
+            SRA_R8(gbcpu.h);
+            break;
+        case 0x2d:
+            // SRA L
+            SRA_R8(gbcpu.l);
+            break;
+        case 0x2e:
+            // SRA [HL]
+            SRA_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x2f:
+            // SRA A
+            SRA_R8(gbcpu.a);
+            break;
+
+        case 0x30:
+            // SWAP B
+            SWAP_R8(gbcpu.b);
+            break;
+        case 0x31:
+            // SWAP C
+            SWAP_R8(gbcpu.c);
+            break;
+        case 0x32:
+            // SWAP D
+            SWAP_R8(gbcpu.d);
+            break;
+        case 0x33:
+            // SWAP E
+            SWAP_R8(gbcpu.e);
+            break;
+        case 0x34:
+            // SWAP H
+            SWAP_R8(gbcpu.h);
+            break;
+        case 0x35:
+            // SWAP L
+            SWAP_R8(gbcpu.l);
+            break;
+        case 0x36:
+            // SWAP [HL]
+            SWAP_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x37:
+            // SWAP A
+            SWAP_R8(gbcpu.a);
+            break;
+        case 0x38:
+            // SRL B
+            SRL_R8(gbcpu.b);
+            break;
+        case 0x39:
+            // SRL C
+            SRL_R8(gbcpu.c);
+            break;
+        case 0x3a:
+            // SRL D
+            SRL_R8(gbcpu.d);
+            break;
+        case 0x3b:
+            // SRL E
+            SRL_R8(gbcpu.e);
+            break;
+        case 0x3c:
+            // SRL H
+            SRL_R8(gbcpu.h);
+            break;
+        case 0x3d:
+            // SRL L
+            SRL_R8(gbcpu.l);
+            break;
+        case 0x3e:
+            // SRL [HL]
+            SRL_R8(gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x3f:
+            // SRL A
+            SRL_R8(gbcpu.a);
+            break;
+
+        case 0x40:
+            // BIT 0, B
+            BIT(0, gbcpu.b);
+            break;
+        case 0x41:
+            // BIT 0, C
+            BIT(0, gbcpu.c);
+            break;
+        case 0x42:
+            // BIT 0, D
+            BIT(0, gbcpu.d);
+            break;
+        case 0x43:
+            // BIT 0, E
+            BIT(0, gbcpu.e);
+            break;
+        case 0x44:
+            // BIT 0, H
+            BIT(0, gbcpu.h);
+            break;
+        case 0x45:
+            // BIT 0, L
+            BIT(0, gbcpu.l);
+            break;
+        case 0x46:
+            // BIT 0, [HL]
+            BIT(0, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x47:
+            // BIT 0, A
+            BIT(0, gbcpu.a);
+            break;
+        case 0x48:
+            // BIT 1, B
+            BIT(1, gbcpu.b);
+            break;
+        case 0x49:
+            // BIT 1, C
+            BIT(1, gbcpu.c);
+            break;
+        case 0x4a:
+            // BIT 1, D
+            BIT(1, gbcpu.d);
+            break;
+        case 0x4b:
+            // BIT 1, E
+            BIT(1, gbcpu.e);
+            break;
+        case 0x4c:
+            // BIT 1, H
+            BIT(1, gbcpu.h);
+            break;
+        case 0x4d:
+            // BIT 1, L
+            BIT(1, gbcpu.l);
+            break;
+        case 0x4e:
+            // BIT 1, [HL]
+            BIT(1, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x4f:
+            // BIT 1, A
+            BIT(1, gbcpu.a);
+            break;
+
+        case 0x50:
+            // BIT 2, B
+            BIT(2, gbcpu.b);
+            break;
+        case 0x51:
+            // BIT 2, C
+            BIT(2, gbcpu.c);
+            break;
+        case 0x52:
+            // BIT 2, D
+            BIT(2, gbcpu.d);
+            break;
+        case 0x53:
+            // BIT 2, E
+            BIT(2, gbcpu.e);
+            break;
+        case 0x54:
+            // BIT 2, H
+            BIT(2, gbcpu.h);
+            break;
+        case 0x55:
+            // BIT 2, L
+            BIT(2, gbcpu.l);
+            break;
+        case 0x56:
+            // BIT 2, [HL]
+            BIT(2, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x57:
+            // BIT 2, A
+            BIT(2, gbcpu.a);
+            break;
+        case 0x58:
+            // BIT 3, B
+            BIT(3, gbcpu.b);
+            break;
+        case 0x59:
+            // BIT 3, C
+            BIT(3, gbcpu.c);
+            break;
+        case 0x5a:
+            // BIT 3, D
+            BIT(3, gbcpu.d);
+            break;
+        case 0x5b:
+            // BIT 3, E
+            BIT(3, gbcpu.e);
+            break;
+        case 0x5c:
+            // BIT 3, H
+            BIT(3, gbcpu.h);
+            break;
+        case 0x5d:
+            // BIT 3, L
+            BIT(3, gbcpu.l);
+            break;
+        case 0x5e:
+            // BIT 3, [HL]
+            BIT(3, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x5f:
+            // BIT 3, A
+            BIT(3, gbcpu.a);
+            break;
+
+        case 0x60:
+            // BIT 4, B
+            BIT(4, gbcpu.b);
+            break;
+        case 0x61:
+            // BIT 4, C
+            BIT(4, gbcpu.c);
+            break;
+        case 0x62:
+            // BIT 4, D
+            BIT(4, gbcpu.d);
+            break;
+        case 0x63:
+            // BIT 4, E
+            BIT(4, gbcpu.e);
+            break;
+        case 0x64:
+            // BIT 4, H
+            BIT(4, gbcpu.h);
+            break;
+        case 0x65:
+            // BIT 4, L
+            BIT(4, gbcpu.l);
+            break;
+        case 0x66:
+            // BIT 4, [HL]
+            BIT(4, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x67:
+            // BIT 4, A
+            BIT(4, gbcpu.a);
+            break;
+        case 0x68:
+            // BIT 5, B
+            BIT(5, gbcpu.b);
+            break;
+        case 0x69:
+            // BIT 5, C
+            BIT(5, gbcpu.c);
+            break;
+        case 0x6a:
+            // BIT 5, D
+            BIT(5, gbcpu.d);
+            break;
+        case 0x6b:
+            // BIT 5, E
+            BIT(5, gbcpu.e);
+            break;
+        case 0x6c:
+            // BIT 5, H
+            BIT(5, gbcpu.h);
+            break;
+        case 0x6d:
+            // BIT 5, L
+            BIT(5, gbcpu.l);
+            break;
+        case 0x6e:
+            // BIT 5, [HL]
+            BIT(5, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x6f:
+            // BIT 5, A
+            BIT(5, gbcpu.a);
+            break;
+
+        case 0x70:
+            // BIT 6, B
+            BIT(6, gbcpu.b);
+            break;
+        case 0x71:
+            // BIT 6, C
+            BIT(6, gbcpu.c);
+            break;
+        case 0x72:
+            // BIT 6, D
+            BIT(6, gbcpu.d);
+            break;
+        case 0x73:
+            // BIT 6, E
+            BIT(6, gbcpu.e);
+            break;
+        case 0x74:
+            // BIT 6, H
+            BIT(6, gbcpu.h);
+            break;
+        case 0x75:
+            // BIT 6, L
+            BIT(6, gbcpu.l);
+            break;
+        case 0x76:
+            // BIT 6, [HL]
+            BIT(6, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x77:
+            // BIT 6, A
+            BIT(6, gbcpu.a);
+            break;
+        case 0x78:
+            // BIT 7, B
+            BIT(7, gbcpu.b);
+            break;
+        case 0x79:
+            // BIT 7, C
+            BIT(7, gbcpu.c);
+            break;
+        case 0x7a:
+            // BIT 7, D
+            BIT(7, gbcpu.d);
+            break;
+        case 0x7b:
+            // BIT 7, E
+            BIT(7, gbcpu.e);
+            break;
+        case 0x7c:
+            // BIT 7, H
+            BIT(7, gbcpu.h);
+            break;
+        case 0x7d:
+            // BIT 7, L
+            BIT(7, gbcpu.l);
+            break;
+        case 0x7e:
+            // BIT 7, [HL]
+            BIT(7, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x7f:
+            // BIT 7, A
+            BIT(7, gbcpu.a);
+            break;
+
+        case 0x80:
+            // RES 0, B
+            RES(0, gbcpu.b);
+            break;
+        case 0x81:
+            // RES 0, C
+            RES(0, gbcpu.c);
+            break;
+        case 0x82:
+            // RES 0, D
+            RES(0, gbcpu.d);
+            break;
+        case 0x83:
+            // RES 0, E
+            RES(0, gbcpu.e);
+            break;
+        case 0x84:
+            // RES 0, H
+            RES(0, gbcpu.h);
+            break;
+        case 0x85:
+            // RES 0, L
+            RES(0, gbcpu.l);
+            break;
+        case 0x86:
+            // RES 0, [HL]
+            RES(0, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x87:
+            // RES 0, A
+            RES(0, gbcpu.a);
+            break;
+        case 0x88:
+            // RES 1, B
+            RES(1, gbcpu.b);
+            break;
+        case 0x89:
+            // RES 1, C
+            RES(1, gbcpu.c);
+            break;
+        case 0x8a:
+            // RES 1, D
+            RES(1, gbcpu.d);
+            break;
+        case 0x8b:
+            // RES 1, E
+            RES(1, gbcpu.e);
+            break;
+        case 0x8c:
+            // RES 1, H
+            RES(1, gbcpu.h);
+            break;
+        case 0x8d:
+            // RES 1, L
+            RES(1, gbcpu.l);
+            break;
+        case 0x8e:
+            // RES 1, [HL]
+            RES(1, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x8f:
+            // RES 1, A
+            RES(1, gbcpu.a);
+            break;
+
+        case 0x90:
+            // RES 2, B
+            RES(2, gbcpu.b);
+            break;
+        case 0x91:
+            // RES 2, C
+            RES(2, gbcpu.c);
+            break;
+        case 0x92:
+            // RES 2, D
+            RES(2, gbcpu.d);
+            break;
+        case 0x93:
+            // RES 2, E
+            RES(2, gbcpu.e);
+            break;
+        case 0x94:
+            // RES 2, H
+            RES(2, gbcpu.h);
+            break;
+        case 0x95:
+            // RES 2, L
+            RES(2, gbcpu.l);
+            break;
+        case 0x96:
+            // RES 2, [HL]
+            RES(2, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x97:
+            // RES 2, A
+            RES(2, gbcpu.a);
+            break;
+        case 0x98:
+            // RES 3, B
+            RES(3, gbcpu.b);
+            break;
+        case 0x99:
+            // RES 3, C
+            RES(3, gbcpu.c);
+            break;
+        case 0x9a:
+            // RES 3, D
+            RES(3, gbcpu.d);
+            break;
+        case 0x9b:
+            // RES 3, E
+            RES(3, gbcpu.e);
+            break;
+        case 0x9c:
+            // RES 3, H
+            RES(3, gbcpu.h);
+            break;
+        case 0x9d:
+            // RES 3, L
+            RES(3, gbcpu.l);
+            break;
+        case 0x9e:
+            // RES 3, [HL]
+            RES(3, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0x9f:
+            // RES 3, A
+            RES(3, gbcpu.a);
+            break;
+
+        case 0xa0:
+            // RES 4, B
+            RES(4, gbcpu.b);
+            break;
+        case 0xa1:
+            // RES 4, C
+            RES(4, gbcpu.c);
+            break;
+        case 0xa2:
+            // RES 4, D
+            RES(4, gbcpu.d);
+            break;
+        case 0xa3:
+            // RES 4, E
+            RES(4, gbcpu.e);
+            break;
+        case 0xa4:
+            // RES 4, H
+            RES(4, gbcpu.h);
+            break;
+        case 0xa5:
+            // RES 4, L
+            RES(4, gbcpu.l);
+            break;
+        case 0xa6:
+            // RES 4, [HL]
+            RES(4, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xa7:
+            // RES 4, A
+            RES(4, gbcpu.a);
+            break;
+        case 0xa8:
+            // RES 5, B
+            RES(5, gbcpu.b);
+            break;
+        case 0xa9:
+            // RES 5, C
+            RES(5, gbcpu.c);
+            break;
+        case 0xaa:
+            // RES 5, D
+            RES(5, gbcpu.d);
+            break;
+        case 0xab:
+            // RES 5, E
+            RES(5, gbcpu.e);
+            break;
+        case 0xac:
+            // RES 5, H
+            RES(5, gbcpu.h);
+            break;
+        case 0xad:
+            // RES 5, L
+            RES(5, gbcpu.l);
+            break;
+        case 0xae:
+            // RES 5, [HL]
+            RES(5, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xaf:
+            // RES 5, A
+            RES(5, gbcpu.a);
+            break;
+
+        case 0xb0:
+            // RES 6, B
+            RES(6, gbcpu.b);
+            break;
+        case 0xb1:
+            // RES 6, C
+            RES(6, gbcpu.c);
+            break;
+        case 0xb2:
+            // RES 6, D
+            RES(6, gbcpu.d);
+            break;
+        case 0xb3:
+            // RES 6, E
+            RES(6, gbcpu.e);
+            break;
+        case 0xb4:
+            // RES 6, H
+            RES(6, gbcpu.h);
+            break;
+        case 0xb5:
+            // RES 6, L
+            RES(6, gbcpu.l);
+            break;
+        case 0xb6:
+            // RES 6, [HL]
+            RES(6, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xb7:
+            // RES 6, A
+            RES(6, gbcpu.a);
+            break;
+        case 0xb8:
+            // RES 7, B
+            RES(7, gbcpu.b);
+            break;
+        case 0xb9:
+            // RES 7, C
+            RES(7, gbcpu.c);
+            break;
+        case 0xba:
+            // RES 7, D
+            RES(7, gbcpu.d);
+            break;
+        case 0xbb:
+            // RES 7, E
+            RES(7, gbcpu.e);
+            break;
+        case 0xbc:
+            // RES 7, H
+            RES(7, gbcpu.h);
+            break;
+        case 0xbd:
+            // RES 7, L
+            RES(7, gbcpu.l);
+            break;
+        case 0xbe:
+            // RES 7, [HL]
+            RES(7, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xbf:
+            // RES 7, A
+            RES(7, gbcpu.a);
+            break;
+
+        case 0xc0:
+            // SET 0, B
+            SET(0, gbcpu.b);
+            break;
+        case 0xc1:
+            // SET 0, C
+            SET(0, gbcpu.c);
+            break;
+        case 0xc2:
+            // SET 0, D
+            SET(0, gbcpu.d);
+            break;
+        case 0xc3:
+            // SET 0, E
+            SET(0, gbcpu.e);
+            break;
+        case 0xc4:
+            // SET 0, H
+            SET(0, gbcpu.h);
+            break;
+        case 0xc5:
+            // SET 0, L
+            SET(0, gbcpu.l);
+            break;
+        case 0xc6:
+            // SET 0, [HL]
+            SET(0, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xc7:
+            // SET 0, A
+            SET(0, gbcpu.a);
+            break;
+        case 0xc8:
+            // SET 1, B
+            SET(1, gbcpu.b);
+            break;
+        case 0xc9:
+            // SET 1, C
+            SET(1, gbcpu.c);
+            break;
+        case 0xca:
+            // SET 1, D
+            SET(1, gbcpu.d);
+            break;
+        case 0xcb:
+            // SET 1, E
+            SET(1, gbcpu.e);
+            break;
+        case 0xcc:
+            // SET 1, H
+            SET(1, gbcpu.h);
+            break;
+        case 0xcd:
+            // SET 1, L
+            SET(1, gbcpu.l);
+            break;
+        case 0xce:
+            // SET 1, [HL]
+            SET(1, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xcf:
+            // SET 1, A
+            SET(1, gbcpu.a);
+            break;
+
+        case 0xd0:
+            // SET 2, B
+            SET(2, gbcpu.b);
+            break;
+        case 0xd1:
+            // SET 2, C
+            SET(2, gbcpu.c);
+            break;
+        case 0xd2:
+            // SET 2, D
+            SET(2, gbcpu.d);
+            break;
+        case 0xd3:
+            // SET 2, E
+            SET(2, gbcpu.e);
+            break;
+        case 0xd4:
+            // SET 2, H
+            SET(2, gbcpu.h);
+            break;
+        case 0xd5:
+            // SET 2, L
+            SET(2, gbcpu.l);
+            break;
+        case 0xd6:
+            // SET 2, [HL]
+            SET(2, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xd7:
+            // SET 2, A
+            SET(2, gbcpu.a);
+            break;
+        case 0xd8:
+            // SET 3, B
+            SET(3, gbcpu.b);
+            break;
+        case 0xd9:
+            // SET 3, C
+            SET(3, gbcpu.c);
+            break;
+        case 0xda:
+            // SET 3, D
+            SET(3, gbcpu.d);
+            break;
+        case 0xdb:
+            // SET 3, E
+            SET(3, gbcpu.e);
+            break;
+        case 0xdc:
+            // SET 3, H
+            SET(3, gbcpu.h);
+            break;
+        case 0xdd:
+            // SET 3, L
+            SET(3, gbcpu.l);
+            break;
+        case 0xde:
+            // SET 3, [HL]
+            SET(3, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xdf:
+            // SET 3, A
+            SET(3, gbcpu.a);
+            break;
+
+        case 0xe0:
+            // SET 4, B
+            SET(4, gbcpu.b);
+            break;
+        case 0xe1:
+            // SET 4, C
+            SET(4, gbcpu.c);
+            break;
+        case 0xe2:
+            // SET 4, D
+            SET(4, gbcpu.d);
+            break;
+        case 0xe3:
+            // SET 4, E
+            SET(4, gbcpu.e);
+            break;
+        case 0xe4:
+            // SET 4, H
+            SET(4, gbcpu.h);
+            break;
+        case 0xe5:
+            // SET 4, L
+            SET(4, gbcpu.l);
+            break;
+        case 0xe6:
+            // SET 4, [HL]
+            SET(4, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xe7:
+            // SET 4, A
+            SET(4, gbcpu.a);
+            break;
+        case 0xe8:
+            // SET 5, B
+            SET(5, gbcpu.b);
+            break;
+        case 0xe9:
+            // SET 5, C
+            SET(5, gbcpu.c);
+            break;
+        case 0xea:
+            // SET 5, D
+            SET(5, gbcpu.d);
+            break;
+        case 0xeb:
+            // SET 5, E
+            SET(5, gbcpu.e);
+            break;
+        case 0xec:
+            // SET 5, H
+            SET(5, gbcpu.h);
+            break;
+        case 0xed:
+            // SET 5, L
+            SET(5, gbcpu.l);
+            break;
+        case 0xee:
+            // SET 5, [HL]
+            SET(5, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xef:
+            // SET 5, A
+            SET(5, gbcpu.a);
+            break;
+
+        case 0xf0:
+            // SET 6, B
+            SET(6, gbcpu.b);
+            break;
+        case 0xf1:
+            // SET 6, C
+            SET(6, gbcpu.c);
+            break;
+        case 0xf2:
+            // SET 6, D
+            SET(6, gbcpu.d);
+            break;
+        case 0xf3:
+            // SET 6, E
+            SET(6, gbcpu.e);
+            break;
+        case 0xf4:
+            // SET 6, H
+            SET(6, gbcpu.h);
+            break;
+        case 0xf5:
+            // SET 6, L
+            SET(6, gbcpu.l);
+            break;
+        case 0xf6:
+            // SET 6, [HL]
+            SET(6, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xf7:
+            // SET 6, A
+            SET(6, gbcpu.a);
+            break;
+        case 0xf8:
+            // SET 7, B
+            SET(7, gbcpu.b);
+            break;
+        case 0xf9:
+            // SET 7, C
+            SET(7, gbcpu.c);
+            break;
+        case 0xfa:
+            // SET 7, D
+            SET(7, gbcpu.d);
+            break;
+        case 0xfb:
+            // SET 7, E
+            SET(7, gbcpu.e);
+            break;
+        case 0xfc:
+            // SET 7, H
+            SET(7, gbcpu.h);
+            break;
+        case 0xfd:
+            // SET 7, L
+            SET(7, gbcpu.l);
+            break;
+        case 0xfe:
+            // SET 7, [HL]
+            SET(7, gb_mmap.mem[gbcpu.hl]);
+            break;
+        case 0xff:
+            // SET 7, A
+            SET(7, gbcpu.a);
+            break;
+        }
         break;
     }
 }
