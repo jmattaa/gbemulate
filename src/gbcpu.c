@@ -353,7 +353,7 @@ void gbcpu_step(void)
     break;
     case 0x18:
         // JR e8
-        gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc];
+        gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc + 1];
         break;
     case 0x19:
         // ADD HL, DE
@@ -394,7 +394,7 @@ void gbcpu_step(void)
     case 0x20:
         // JR NZ, e8
         if (!gbcpu.f.z)
-            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc];
+            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc + 1];
         break;
     case 0x21:
         // LD HL, n16
@@ -447,7 +447,7 @@ void gbcpu_step(void)
     case 0x28:
         // JR Z, e8
         if (gbcpu.f.z)
-            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc];
+            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc + 1];
         break;
     case 0x29:
         // ADD HL, HL
@@ -483,7 +483,7 @@ void gbcpu_step(void)
     case 0x30:
         // JR NC, e8
         if (!gbcpu.f.c)
-            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc];
+            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc + 1];
         break;
     case 0x31:
         // LD SP, n16
@@ -519,7 +519,8 @@ void gbcpu_step(void)
     case 0x38:
         // JR C, e8
         if (gbcpu.c)
-            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc];
+            gbcpu.pc += (int8_t)gb_mmap.mem[gbcpu.pc + 1];
+        break;
     case 0x39:
         // ADD HL, SP
         ADD_RR_RR(gbcpu.hl, gbcpu.sp);
@@ -543,6 +544,7 @@ void gbcpu_step(void)
     case 0x3e:
         // LD A, n8
         gbcpu.a = gb_mmap.mem[gbcpu.pc++];
+        break;
     case 0x3f:
         // CCF
         gbcpu.f.n = 0;
@@ -1097,6 +1099,7 @@ void gbcpu_step(void)
             gb_mmap.mem[gbcpu.sp] = gbcpu.pc & 0xff;
             gbcpu.pc = gb_mmap.mem[gbcpu.pc++] | (gb_mmap.mem[gbcpu.pc++] << 8);
         }
+        break;
     case 0xc5:
         // PUSH BC
         PUSH_RR(gbcpu.bc);
