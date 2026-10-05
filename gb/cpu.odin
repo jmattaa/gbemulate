@@ -1,6 +1,6 @@
 package gb
 
-cpu_regs :: struct {
+cpu_regs_t :: struct {
 	using _: struct #raw_union {
 		using _: struct {
 			f: bit_field (u8) {
@@ -37,8 +37,4 @@ cpu_regs :: struct {
 	},
 	sp:      u16,
 	pc:      u16,
-}
-
-dbg_setup_regs :: proc() -> cpu_regs {
-	return cpu_regs{af = 0xaea0, bc = 0x0013, de = 0x00d8, hl = 0x014d, sp = 0xfffe, pc = 0x100}
 }

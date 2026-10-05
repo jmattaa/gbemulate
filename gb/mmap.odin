@@ -1,0 +1,24 @@
+package gb
+
+mmap_t :: struct #raw_union {
+	mem:     [0xffff]u8,
+	using _: struct {
+		using _:  struct #raw_union {
+			using _: struct {
+				rbank0: [0x4000]u8, // 0x0000 - 0x3fff
+				rbank1: [0x4000]u8, // 0x4000 - 0x7fff
+			},
+			cmmap:   cmmap_t, // 0x0000 - 0x7fff
+		},
+		vram:     [0x2000]u8, // 0x8000 - 0x9fff
+		extram:   [0x2000]u8, // 0xa000 - 0xbfff
+		wram0:    [0x1000]u8, // 0xc000 - 0xdfff
+		wram1:    [0x1000]u8, // 0xd000 - 0xdfff
+		echo_ram: [0x1e00]u8, // 0xe000 - 0xfdff (PROHIBITED)
+		oam:      [0xa0]u8, // 0xfe00 - 0xfe9f
+		_unused:  [0x60]u8, // 0xfea0 - 0xfeff (PROHIBITED)
+		io:       [0x80]u8, // 0xff00 - 0xff7f
+		hram:     [0x7f]u8, // 0xff80 - 0xfffe
+		ie:       u8, // 0xffff
+	},
+}
