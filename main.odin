@@ -22,13 +22,30 @@ main :: proc() {
     fmt.println("RAM size:", chdr.ram_size)
     fmt.println("ROM version:", chdr.rom_version)
 
-	rl.SetConfigFlags({.WINDOW_UNDECORATED})
-	rl.InitWindow(utils.GB_WIDTH * utils.RES_MULT, utils.GB_HEIGHT * utils.RES_MULT, "gbemulate")
-	defer rl.CloseWindow()
+    cpu_regs := gb.dbg_setup_regs()
 
-	for !rl.WindowShouldClose() {
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.BLACK)
-		rl.EndDrawing()
-	}
+    fmt.println("f: ", cpu_regs.f)
+    fmt.println("a: ", cpu_regs.a)
+    fmt.println("af: ", cpu_regs.af)
+    fmt.println("c: ", cpu_regs.c)
+    fmt.println("b: ", cpu_regs.b)
+    fmt.println("bc: ", cpu_regs.bc)
+    fmt.println("d: ", cpu_regs.d)
+    fmt.println("e: ", cpu_regs.e)
+    fmt.println("de: ", cpu_regs.de)
+    fmt.println("h: ", cpu_regs.h)
+    fmt.println("l: ", cpu_regs.l)
+    fmt.println("hl: ", cpu_regs.hl)
+    fmt.println("sp: ", cpu_regs.sp)
+    fmt.println("pc: ", cpu_regs.pc)
+
+// 	rl.SetConfigFlags({.WINDOW_UNDECORATED})
+// 	rl.InitWindow(utils.GB_WIDTH * utils.RES_MULT, utils.GB_HEIGHT * utils.RES_MULT, "gbemulate")
+// 	defer rl.CloseWindow()
+// 
+// 	for !rl.WindowShouldClose() {
+// 		rl.BeginDrawing()
+// 		rl.ClearBackground({139, 172, 15, 255})
+// 		rl.EndDrawing()
+// 	}
 }
