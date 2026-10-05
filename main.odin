@@ -17,6 +17,10 @@ main :: proc() {
 	fmt.println("ROM size:", rom_size)
 	chdr := cast(^gb.chdr)(raw_data(rom[0x100:]))
 	fmt.println("ROM title:", string(chdr.title[:]))
+    fmt.println("ROM type:", chdr.cart_type)
+    fmt.println("ROM size:", chdr.rom_size)
+    fmt.println("RAM size:", chdr.ram_size)
+    fmt.println("ROM version:", chdr.rom_version)
 
 	rl.SetConfigFlags({.WINDOW_UNDECORATED})
 	rl.InitWindow(utils.GB_WIDTH * utils.RES_MULT, utils.GB_HEIGHT * utils.RES_MULT, "gbemulate")
