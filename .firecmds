@@ -1,1 +1,2 @@
-run odin run .
+run ./build/dev/gbemulate
+build ./build.sh
