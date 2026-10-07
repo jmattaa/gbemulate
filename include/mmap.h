@@ -30,7 +30,7 @@ typedef union {
 } cmmap_t;
 
 typedef union {
-    u8 mem[0xffff];
+    u8 mem[0x10000];
     struct {
         union {
             struct {
