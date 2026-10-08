@@ -1,6 +1,6 @@
-#include <raylib.h>
 #include "constatns.h"
 #include "gb.h"
+#include "gfx.h"
 #include "logger.h"
 #include "opcode.h"
 
@@ -17,20 +17,27 @@ int main(void) {
     log_info("ROM version: 0x%x\n", gb->mmap.cart.hdr.rom_version);
     log_info("Licensee code: 0x%x\n", gb->mmap.cart.hdr.old_licensee);
 
-    SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-    InitWindow(GB_WIDTH * GB_PXL_MUL, GB_HEIGHT * GB_PXL_MUL, "gbemulate");
-
-    while (!WindowShouldClose()) {
-        if (!cpu_step(gb))
-            break;
-
-        BeginDrawing();
-        ClearBackground((Color){139, 172, 15, 255});
-        EndDrawing();
+    gfx_ctx_t *gfx_ctx = gfx_init(GB_WIDTH, GB_HEIGHT, "gbemulate");
+    if (gfx_ctx == NULL) {
+        gb_free(gb);
+        log_fatal(1, "Failed to initialize graphics\n");
     }
 
-    CloseWindow();
+    u8 running = 1;
+    while (running) {
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_EVENT_QUIT)
+                running = 0;
+        }
 
+        if (!cpu_step(gb))
+            running = 0;
+        gfx_clear(gfx_ctx, (SDL_Color){139, 172, 15, 255});
+        gfx_update(gfx_ctx);
+    }
+
+    gfx_free(gfx_ctx);
     gb_free(gb);
     return 0;
 }
