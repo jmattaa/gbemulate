@@ -1,9 +1,9 @@
 #ifndef GBEMULATE_GB_H
 #define GBEMULATE_GB_H
 
+#include <stddef.h>
 #include "cpu.h"
 #include "mmap.h"
-#include <stddef.h>
 
 typedef struct {
     mmap_t mmap;

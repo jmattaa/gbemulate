@@ -1,8 +1,8 @@
 #include "gb.h"
+#include <stdlib.h>
 #include "cpu.h"
 #include "io.h"
 #include "logger.h"
-#include <stdlib.h>
 
 gb_t *gb_init(const char *fname) {
     gb_t *gb = malloc(sizeof(gb_t));

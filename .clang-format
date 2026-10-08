@@ -19,9 +19,9 @@ AlignConsecutiveDeclarations: false
 IncludeBlocks: Preserve
 IncludeCategories:
   - Regex: '^<.*\.h>'
-    Priority: 2
-  - Regex: '^".*"'
     Priority: 1
+  - Regex: '^".*"'
+    Priority: 2
 
 ColumnLimit: 80
 

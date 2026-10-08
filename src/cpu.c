@@ -1,7 +1,7 @@
 #include "cpu.h"
+#include <stdlib.h>
 #include "gb.h"
 #include "logger.h"
-#include <stdlib.h>
 
 cpu_t *cpu_init(void) {
     cpu_t *cpu = calloc(1, sizeof(cpu_t));

@@ -1,0 +1,8 @@
+#ifndef GBEMULATE_CONSTATNS_H
+#define GBEMULATE_CONSTATNS_H
+
+#define GB_WIDTH 160
+#define GB_HEIGHT 144
+#define GB_PXL_MUL 4
+
+#endif
