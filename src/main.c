@@ -3,6 +3,7 @@
 #include "gfx.h"
 #include "logger.h"
 #include "opcode.h"
+#include "ppu.h"
 
 int main(void) {
     gb_t *gb = gb_init("roms/tests/cpu_instrs.gb");
@@ -23,6 +24,13 @@ int main(void) {
         log_fatal(1, "Failed to initialize graphics\n");
     }
 
+    ppu_t *ppu = ppu_init(gb);
+    if (ppu == NULL) {
+        gfx_free(gfx_ctx);
+        gb_free(gb);
+        log_fatal(1, "Failed to initialize ppu\n");
+    }
+
     u8 running = 1;
     while (running) {
         SDL_Event e;
@@ -33,10 +41,12 @@ int main(void) {
 
         if (!cpu_step(gb))
             running = 0;
+        ppu_step(ppu);
         gfx_clear(gfx_ctx, (SDL_Color){139, 172, 15, 255});
         gfx_update(gfx_ctx);
     }
 
+    ppu_free(ppu);
     gfx_free(gfx_ctx);
     gb_free(gb);
     return 0;
