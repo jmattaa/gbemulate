@@ -8,24 +8,39 @@ void ppu_init(ppu_t *ppu) {
 }
 
 void ppu_step(gb_t *gb) {
-    ppu_t *ppu = &gb->ppu;
-    switch (ppu->mode) {
+    ppu_t *p = &gb->ppu;
+    switch (p->mode) {
         case OAM_SEARCH:
-            ppu->mode = PXL_TRANSFER;
+            // scan the OAM from 0xfe00 to 0xfe9f to mix sprite pixels in the
+            // current line later.
+
+            if (p->ticks == 80)
+                p->mode = PXL_TRANSFER;
             break;
         case PXL_TRANSFER:
-            ppu->mode = HBLANK;
+            p->npxl_scanline++;
+            if (p->npxl_scanline == 160)
+                p->mode = HBLANK;
             break;
         case HBLANK:
-            if (ppu->ly == 144)
-                ppu->mode = VBLANK;
-            else
-                ppu->mode = OAM_SEARCH;
+            if (p->ticks == 456) {
+                p->ticks = 0;
+                p->ly++;
+                if (p->ly == 144)
+                    p->mode = VBLANK;
+                else
+                    p->mode = OAM_SEARCH;
+            }
             break;
         case VBLANK:
-            ppu->mode = OAM_SEARCH;
+            if (p->ticks == 456) {
+                p->ticks = 0;
+                p->ly++;
+                if (p->ly == 153) {
+                    p->ly = 0;
+                    p->mode = OAM_SEARCH;
+                }
+            }
             break;
     }
 }
-
-

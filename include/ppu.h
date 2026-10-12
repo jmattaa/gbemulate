@@ -12,6 +12,7 @@ typedef struct {
         HBLANK,
     } mode;
     u8 npxl_scanline;
+    u32 ticks;
 } ppu_t;
 
 typedef struct gb_t gb_t;
