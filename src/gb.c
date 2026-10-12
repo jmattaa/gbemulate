@@ -26,6 +26,8 @@ gb_t *gb_init(const char *fname) {
         return NULL;
     }
 
+    ppu_init(&gb->ppu);
+
     return gb;
 }
 

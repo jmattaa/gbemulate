@@ -1,23 +1,14 @@
 #include "ppu.h"
-#include <stdlib.h>
-#include "logger.h"
+#include "gb.h"
 
-ppu_t *ppu_init(gb_t *gb) {
-    ppu_t *ppu = malloc(sizeof(ppu_t));
-    if (ppu == NULL) {
-        log_error("Failed to allocate ppu_t (ppu struct)\n");
-        return NULL;
-    }
-
-    ppu->gb = gb;
+void ppu_init(ppu_t *ppu) {
     ppu->ly = 0;
     ppu->mode = OAM_SEARCH;
     ppu->npxl_scanline = 0;
-
-    return ppu;
 }
 
-void ppu_step(ppu_t *ppu) {
+void ppu_step(gb_t *gb) {
+    ppu_t *ppu = &gb->ppu;
     switch (ppu->mode) {
         case OAM_SEARCH:
             ppu->mode = PXL_TRANSFER;
@@ -37,4 +28,4 @@ void ppu_step(ppu_t *ppu) {
     }
 }
 
-void ppu_free(ppu_t *ppu) { free(ppu); }
+

@@ -4,16 +4,20 @@
 #include <stddef.h>
 #include "cpu.h"
 #include "mmap.h"
+#include "ppu.h"
 
-typedef struct {
+struct gb_t {
     mmap_t mmap;
     cpu_t *cpu;
+    ppu_t ppu;
 
     u32 ticks;
 
     char *crom; // cartridge rom
     size_t crom_size;
-} gb_t;
+};
+
+typedef struct gb_t gb_t;
 
 gb_t *gb_init(const char *fname);
 void gb_clock_advance(gb_t *gb, u8 ticks);
