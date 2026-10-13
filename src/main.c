@@ -34,7 +34,7 @@ int main(void) {
         if (!cpu_step(gb))
             running = 0;
         ppu_step(gb);
-        gfx_clear(gfx_ctx, (SDL_Color){139, 172, 15, 255});
+        gfx_clear(gfx_ctx, PALETTE[0]);
         gfx_update(gfx_ctx);
     }
 

@@ -1,5 +1,6 @@
 #include "gfx.h"
 #include <stdlib.h>
+#include "constatns.h"
 #include "logger.h"
 
 gfx_ctx_t *gfx_init(u8 w, u8 h, const char *title) {
@@ -50,9 +51,26 @@ void gfx_clear(gfx_ctx_t *ctx, SDL_Color c) {
     SDL_RenderClear(ctx->ren);
 }
 
-void gfx_pxl(gfx_ctx_t *ctx, u8 x, u8 y, SDL_Color c) {
-    SDL_SetRenderDrawColor(ctx->ren, c.r, c.g, c.b, c.a);
-    SDL_RenderPoint(ctx->ren, x, y);
+void gfx_write(gfx_ctx_t *ctx, u8 ncol) {
+    SDL_Color col = PALETTE[ncol];
+
+    ctx->buffer[ctx->offset++] = col.r;
+    ctx->buffer[ctx->offset++] = col.g;
+    ctx->buffer[ctx->offset++] = col.b;
+    ctx->buffer[ctx->offset++] = col.a;
+
+    // this shouldn't be reached though
+    // the ppu should've already called it if we're here
+    if (ctx->offset == GB_WIDTH * GB_HEIGHT * 4)
+        gfx_vblank(ctx);
+}
+
+void gfx_vblank(gfx_ctx_t *ctx) {
+    ctx->offset = 0;
+
+    SDL_UpdateTexture(ctx->tex, NULL, ctx->buffer, GB_WIDTH * 4);
+    SDL_RenderTexture(ctx->ren, ctx->tex, NULL, NULL);
+    SDL_RenderPresent(ctx->ren);
 }
 
 void gfx_update(gfx_ctx_t *ctx) { SDL_RenderPresent(ctx->ren); }
